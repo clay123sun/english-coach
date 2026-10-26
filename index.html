@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#3b82f6"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="icon" href="icon-192.png" sizes="192x192"/>
+<title>英语口语教练</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+:root{
+  --bg:#0f172a;--card:#1e293b;--card2:#334155;--accent:#3b82f6;
+  --green:#22c55e;--red:#ef4444;--yellow:#eab308;--text:#f1f5f9;
+  --text2:#94a3b8;--radius:16px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden;-webkit-user-select:none;user-select:none}
+.header{position:sticky;top:0;z-index:100;background:rgba(15,23,42,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:12px 16px 8px;border-bottom:1px solid #1e293b}
+.header h1{font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px}
+.stats-row{display:flex;gap:8px;margin-top:8px}
+.stat-pill{background:var(--card);border-radius:20px;padding:4px 10px;font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px}
+.stat-pill b{color:var(--accent);font-size:13px}
+.nav{display:flex;background:var(--card);border-radius:var(--radius);margin:12px 16px 0;overflow:hidden}
+.nav-item{flex:1;padding:10px 4px;text-align:center;font-size:11px;color:var(--text2);cursor:pointer;transition:all .2s;position:relative}
+.nav-item.active{color:var(--text);font-weight:600}
+.nav-item.active::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--accent);border-radius:2px}
+.nav-item .nav-icon{font-size:20px;display:block;margin-bottom:2px}
+.page{display:none;padding:16px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.15)}}
+.card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text)}
+.card-sub{font-size:12px;color:var(--text2);margin-bottom:8px}
+/* TTS 横幅 */
+.tts-banner{background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.35);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:none}
+.tts-banner.show{display:block}
+.tts-banner strong{font-size:13px;color:var(--yellow)}
+.tts-banner p{font-size:11px;color:var(--text2);margin-top:4px;line-height:1.5}
+/* 播放提示 */
+.playing-tip{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:13px;padding:8px 18px;border-radius:20px;display:none;z-index:200;white-space:nowrap;box-shadow:0 4px 20px rgba(59,130,246,.5)}
+.playing-tip.show{display:block}
+/* 测试按钮 */
+.test-row{display:flex;gap:8px;margin-bottom:12px}
+.test-btn{flex:1;padding:8px;background:var(--card2);border:none;border-radius:10px;color:var(--text);font-size:12px;cursor:pointer;text-align:center;transition:border-color .2s}
+.test-btn.ok{color:var(--green);border:1px solid var(--green)}
+.test-btn.fail{color:var(--red);border:1px solid var(--red)}
+/* 口语 */
+.speak-item{display:flex;align-items:center;justify-content:space-between;background:var(--card2);border-radius:12px;padding:12px;margin-bottom:8px;gap:8px;transition:background .3s}
+.speak-item.playing{background:rgba(59,130,246,.2)}
+.speak-item.done .speak-text{color:var(--green)}
+.speak-text{font-size:14px;font-weight:500;flex:1}
+.speak-zh{font-size:11px;color:var(--text2);margin-top:3px}
+.btn-speak{border:none;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:#fff;flex-shrink:0;background:var(--accent);transition:transform .1s,background .2s}
+.btn-speak:active{transform:scale(.88)}
+.btn-speak.playing{background:var(--yellow);animation:pulse .8s infinite}
+.check-btn{width:34px;height:34px;font-size:14px;background:var(--card)}
+.check-btn.on{background:var(--green)}
+.progress-bar{height:6px;background:var(--card2);border-radius:3px;overflow:hidden;margin:10px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:3px;transition:width .4s}
+/* 词汇 */
+.flashcard-container{perspective:800px;height:180px;margin-bottom:12px}
+.flashcard{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flashcard.flipped{transform:rotateY(180deg)}
+.flashcard-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;background:var(--card);border-radius:var(--radius);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px}
+.flashcard-back{transform:rotateY(180deg);background:var(--card2)}
+.fc-word{font-size:28px;font-weight:800;color:var(--accent)}
+.fc-meaning{font-size:20px;font-weight:600;margin-top:8px}
+.fc-example{font-size:12px;color:var(--text2);margin-top:8px;text-align:center}
+.fc-hint{font-size:11px;color:var(--text2);margin-top:12px}
+.fc-actions{display:flex;gap:8px;margin-top:14px}
+.fc-btn{flex:1;padding:9px;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;-webkit-tap-highlight-color:transparent}
+.fc-btn:active{opacity:.7}
+.fc-btn.know{background:var(--green);color:#fff}
+.fc-btn.notknow{background:var(--red);color:#fff}
+.fc-btn.remain{background:var(--yellow);color:#000}
+.fc-btn.blue{background:var(--accent);color:#fff;width:auto;margin-top:14px;padding:6px 14px}
+/* 场景对话 */
+.scene-card{background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:2px solid transparent;transition:border-color .2s}
+.scene-card.active{border-color:var(--accent)}
+.scene-header{display:flex;align-items:center;gap:12px;cursor:pointer}
+.scene-emoji{font-size:28px}
+.scene-title{font-size:14px;font-weight:700}
+.scene-sub{font-size:11px;color:var(--text2)}
+.dlg-toggle{text-align:center;font-size:20px;color:var(--accent);cursor:pointer;padding:4px}
+.dialogue{display:none;background:var(--card2);border-radius:12px;padding:12px;margin-top:10px}
+.dialogue.show{display:block;animation:fadeIn .2s}
+.dlg-line{display:flex;align-items:flex-start;gap:8px;margin-bottom:12px}
+.dlg-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.dlg-a .dlg-avatar{background:var(--accent)}
+.dlg-b .dlg-avatar{background:var(--green)}
+.dlg-name{font-size:11px;color:var(--text2);margin-bottom:2px}
+.dlg-text{font-size:14px;font-weight:500}
+.dlg-zh{font-size:11px;color:var(--text2)}
+.dlg-speak{border:none;border-radius:50%;width:34px;height:34px;font-size:14px;cursor:pointer;color:var(--accent);background:var(--card);margin-top:2px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:transform .1s;flex-shrink:0}
+.dlg-speak:active{transform:scale(.88)}
+.dlg-speak.playing{color:var(--yellow);animation:pulse .6s infinite}
+/* 挑战 */
+.quiz-q{font-size:16px;font-weight:700;margin-bottom:12px;line-height:1.5}
+.quiz-opt{display:block;width:100%;text-align:left;padding:12px 14px;margin-bottom:8px;background:var(--card2);border:2px solid transparent;border-radius:12px;color:var(--text);font-size:14px;cursor:pointer;transition:all .2s}
+.quiz-opt:active{border-color:var(--accent)}
+.quiz-opt.correct{background:rgba(34,197,94,.15);border-color:var(--green)}
+.quiz-opt.wrong{background:rgba(239,68,68,.15);border-color:var(--red)}
+.quiz-result{background:var(--card);border-radius:var(--radius);padding:20px;text-align:center;display:none}
+.quiz-score{font-size:48px;font-weight:800;color:var(--accent)}
+.quiz-msg{font-size:14px;color:var(--text2);margin-top:8px}
+/* tab bar */
+.tab-bar{position:fixed;bottom:0;left:0;right:0;background:rgba(15,23,42,.96);border-top:1px solid var(--card);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
+.tab-item{flex:1;padding:10px 4px 6px;text-align:center;color:var(--text2);font-size:10px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.tab-item .tab-icon{font-size:22px;display:block;margin-bottom:1px}
+.tab-item.active{color:var(--accent)}
+body{padding-bottom:72px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎯 英语口语教练 <span style="font-size:11px;color:var(--text2);font-weight:400">v1.1</span></h1>
+  <div class="stats-row">
+    <div class="stat-pill">🔥 连续 <b id="streak">0</b> 天</div>
+    <div class="stat-pill">📚 词汇 <b id="vocab-known">0</b>/30</div>
+    <div class="stat-pill">✅ 最高 <b id="challenge-best">0</b></div>
+  </div>
+</div>
+
+<div class="tts-banner" id="ttsBanner">
+  <strong>⚠️ 语音功能未激活</strong>
+  <p>本应用需通过 HTTPS 访问才能启用语音。若直接打开本地文件，请在 Safari/Chrome 中点击地址栏左侧 → 网站设置 → 允许语音，或把本文件上传到 GitHub Pages / 任意 HTTPS 服务器后再访问。添加到主屏幕后一般可正常使用。</p>
+</div>
+<div class="playing-tip" id="playingTip">🔊 播放中…</div>
+
+<div class="nav" id="mainNav">
+  <div class="nav-item active" data-page="speak"><span class="nav-icon">🎙️</span>跟读</div>
+  <div class="nav-item" data-page="vocab"><span class="nav-icon">📚</span>词汇</div>
+  <div class="nav-item" data-page="dialogue"><span class="nav-icon">💬</span>对话</div>
+  <div class="nav-item" data-page="challenge"><span class="nav-icon">🏆</span>挑战</div>
+</div>
+
+<!-- 口语跟读 -->
+<div class="page active" id="page-speak">
+  <div class="card">
+    <div class="card-title">🎙️ 口语跟读</div>
+    <div class="card-sub">点 🔊 听发音 → 自己跟读 → 点 ✓ 标记完成</div>
+    <div class="test-row">
+      <button class="test-btn" id="testTtsBtn" onclick="testTts()">🔊 测试语音是否可用</button>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="speak-progress" style="width:0%"></div></div>
+    <div id="speak-list"></div>
+  </div>
+</div>
+
+<!-- 词汇 -->
+<div class="page" id="page-vocab">
+  <div class="card">
+    <div class="card-title">📚 词汇闪卡 <span id="vocab-count" style="font-size:12px;color:var(--text2)"></span></div>
+    <div class="card-sub">点卡片翻转看含义 · 认识点绿 · 不认识点红</div>
+    <div class="flashcard-container">
+      <div class="flashcard" id="flashcard">
+        <div class="flashcard-face" id="fcFront">
+          <div class="fc-word" id="fc-word"></div>
+          <div class="fc-example" id="fc-ex"></div>
+          <div class="fc-hint">点卡片翻转 →</div>
+          <button class="fc-btn blue" id="fcSpeakBtn">🔊 发音</button>
+        </div>
+        <div class="flashcard-face flashcard-back" id="fcBack">
+          <div class="fc-meaning" id="fc-meaning"></div>
+          <div class="fc-example" id="fc-ex2"></div>
+          <div class="fc-actions">
+            <button class="fc-btn notknow" id="btnNotKnow">❌ 不认识</button>
+            <button class="fc-btn know" id="btnKnow">✅ 认识</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="fc-btn remain" style="width:100%;padding:10px;font-size:14px" id="btnNextVocab">⏭️ 下一张</button>
+  </div>
+</div>
+
+<!-- 场景对话 -->
+<div class="page" id="page-dialogue">
+  <div class="card">
+    <div class="card-title">💬 场景对话</div>
+    <div class="card-sub">点场景展开，逐句点 🔊 听发音，跟着朗读</div>
+    <div id="scene-list"></div>
+  </div>
+</div>
+
+<!-- 挑战 -->
+<div class="page" id="page-challenge">
+  <div class="card">
+    <div class="card-title">🏆 每日挑战</div>
+    <div class="card-sub">听音选词 · 中译英 · 词形辨析，随机 5 题</div>
+    <button class="fc-btn remain" style="width:100%;padding:12px;font-size:15px;font-weight:700;margin-bottom:12px" id="btnStartChallenge">🚀 开始挑战</button>
+    <div id="quiz-area" style="display:none">
+      <div class="quiz-q" id="quiz-q"></div>
+      <div id="quiz-opts"></div>
+    </div>
+    <div class="quiz-result" id="quiz-result">
+      <div class="quiz-score" id="quiz-score">0/5</div>
+      <div class="quiz-msg" id="quiz-msg"></div>
+      <button class="fc-btn remain" style="margin-top:16px;padding:10px;width:100%" id="btnRetryChallenge">再来一次</button>
+    </div>
+  </div>
+</div>
+
+<div class="tab-bar">
+  <div class="tab-item active" data-page="speak"><span class="tab-icon">🎙️</span>跟读</div>
+  <div class="tab-item" data-page="vocab"><span class="tab-icon">📚</span>词汇</div>
+  <div class="tab-item" data-page="dialogue"><span class="tab-icon">💬</span>对话</div>
+  <div class="tab-item" data-page="challenge"><span class="tab-icon">🏆</span>挑战</div>
+</div>
+
+<script>
+// ========== 数据 ==========
+const SPEAKING = [
+  {en:"Good morning! How are you today?",zh:"早上好！你今天好吗？"},
+  {en:"I'm really glad to meet you.",zh:"真的很高兴见到你。"},
+  {en:"Could you say that again, please?",zh:"请再说一遍好吗？"},
+  {en:"I'm not very sure about that.",zh:"我对那个不太确定。"},
+  {en:"Let me think about it for a moment.",zh:"让我想一会儿。"},
+  {en:"I completely agree with you.",zh:"我完全同意你的看法。"},
+  {en:"That's a great point, actually.",zh:"实际上，那个观点很好。"},
+  {en:"I'd love to, but I'm afraid I can't make it.",zh:"我很想去，但恐怕去不了。"},
+  {en:"What do you usually do on weekends?",zh:"你周末通常做什么？"},
+  {en:"I've been trying to get up earlier lately.",zh:"我最近一直在努力早起。"},
+  {en:"That sounds really interesting to me.",zh:"听起来真有趣。"},
+  {en:"I wonder if we could schedule a meeting.",zh:"我想知道我们能不能安排个会议。"},
+  {en:"Please don't mention it, it was nothing.",zh:"别提了，没什么事。"},
+  {en:"How long have you been working here?",zh:"你在这里工作多久了？"},
+  {en:"I'm still getting used to the new system.",zh:"我还在适应新系统。"},
+  {en:"You seem to be in a hurry, everything okay?",zh:"你看起来很赶，一切还好吗？"},
+  {en:"Let's wrap this up before it gets late.",zh:"在天黑之前把这事搞定吧。"},
+  {en:"I appreciate you taking the time to help me.",zh:"非常感谢你花时间帮我。"},
+  {en:"I'm afraid I misheard you, could you repeat?",zh:"我恐怕听错了，能重复一下吗？"},
+  {en:"That's exactly what I was looking for.",zh:"这正是我在找的。"},
+];
+
+const VOCAB = [
+  {w:"accommodate",m:"提供住处；容纳",ex:"The hotel accommodates 300 guests."},
+  {w:"consequence",m:"结果；后果",ex:"There will be serious consequences."},
+  {w:"deliberate",m:"故意的；慎重的",ex:"It was a deliberate decision."},
+  {w:"emphasize",m:"强调；着重",ex:"He emphasized the importance of safety."},
+  {w:"feasible",m:"可行的",ex:"The plan seems financially feasible."},
+  {w:"genuine",m:"真诚的；真正的",ex:"She showed genuine concern for us."},
+  {w:"implement",m:"实施；执行",ex:"We will implement the new policy next month."},
+  {w:"justify",m:"证明合理；辩护",ex:"Nothing can justify that behavior."},
+  {w:"knead",m:"揉（面团）",ex:"She kneaded the dough for ten minutes."},
+  {w:"landscape",m:"风景；领域",ex:"The tech landscape is evolving rapidly."},
+  {w:"magnificent",m:"壮丽的；极好的",ex:"The view was absolutely magnificent."},
+  {w:"negotiate",m:"谈判；协商",ex:"We need to negotiate a better contract."},
+  {w:"obstacle",m:"障碍；阻碍",ex:"Time is the biggest obstacle to learning."},
+  {w:"parallel",m:"平行的；类似的",ex:"The two lines run parallel to each other."},
+  {w:"quietly",m:"安静地；悄悄地",ex:"She quietly left the room without saying a word."},
+  {w:"reluctant",m:"不情愿的",ex:"I was reluctant to accept the offer."},
+  {w:"schedule",m:"时间表；安排",ex:"I'll schedule a call for next Tuesday."},
+  {w:"tremendous",m:"巨大的；极好的",ex:"We made tremendous progress this year."},
+  {w:"urgent",m:"紧急的；迫切的",ex:"This is an urgent matter that needs attention."},
+  {w:"vulnerable",m:"脆弱的；易受伤的",ex:"Children are particularly vulnerable to disease."},
+  {w:"widespread",m:"广泛的；普遍的",ex:"There is widespread support for the new plan."},
+  {w:"appreciate",m:"感激；欣赏",ex:"I really appreciate your help."},
+  {w:"breakthrough",m:"突破；重大进展",ex:"Scientists achieved a major breakthrough."},
+  {w:"curious",m:"好奇的",ex:"I'm curious about what happens next."},
+  {w:"definitely",m:"肯定地；明确地",ex:"I definitely want to join the trip."},
+  {w:"energetic",m:"精力充沛的",ex:"She is an energetic person who never stops."},
+  {w:"fundamental",m:"基本的；根本的",ex:"There is a fundamental difference between them."},
+  {w:"hesitate",m:"犹豫；踌躇",ex:"Don't hesitate to ask if you have questions."},
+  {w:"insight",m:"洞察；见解",ex:"Her insight into the market was remarkable."},
+  {w:"journey",m:"旅程；过程",ex:"Learning a language is a long but rewarding journey."},
+];
+
+const SCENES = [
+  {emoji:"🍕",title:"点餐",sub:"Restaurant",lines:[
+    {a:true,en:"Hi, what would you like to order?",zh:"你好，您要点什么？"},
+    {a:false,en:"I'd like a pizza and a glass of water, please.",zh:"请给我一个披萨和一杯水。"},
+    {a:true,en:"Any preference for the pizza size?",zh:"披萨大小有偏好吗？"},
+    {a:false,en:"Medium would be perfect, and extra cheese if possible.",zh:"中等大小就好，能多加芝士就更好。"},
+    {a:true,en:"Sure! Would you like anything to drink?",zh:"好的！还要喝点什么吗？"},
+    {a:false,en:"A bottle of lemon water, please. And the bill at the end.",zh:"一瓶柠檬水，麻烦最后结账。"},
+  ]},
+  {emoji:"✈️",title:"机场值机",sub:"Airport",lines:[
+    {a:true,en:"Good morning. May I see your passport and booking reference?",zh:"早上好，请出示护照和订座号。"},
+    {a:false,en:"Good morning. Here you are. Reference is ABC123.",zh:"早上好，给您。订座号是 ABC123。"},
+    {a:true,en:"How many pieces of luggage are you checking in?",zh:"您要托运几件行李？"},
+    {a:false,en:"Just one suitcase, and one small backpack on my lap.",zh:"一个行李箱托运，小背包带上飞机。"},
+    {a:true,en:"Window or aisle seat, would you prefer?",zh:"靠窗还是靠过道，您选哪个？"},
+    {a:false,en:"Window, please. And I'd like to sit in the front if possible.",zh:"靠窗吧，能坐前排就更好。"},
+  ]},
+  {emoji:"🏥",title:"看医生",sub:"Doctor visit",lines:[
+    {a:true,en:"What seems to be the problem today?",zh:"您今天哪里不舒服？"},
+    {a:false,en:"I've had a persistent headache for about three days.",zh:"我持续头痛大约三天了。"},
+    {a:true,en:"Do you have any fever or other symptoms?",zh:"有发烧或其他症状吗？"},
+    {a:false,en:"Just the headache and some mild dizziness. No fever.",zh:"就是头痛和轻微头晕，没有发烧。"},
+    {a:true,en:"I'll examine you briefly. Do you take any medication?",zh:"我先给您检查一下。平时有服药吗？"},
+    {a:false,en:"No, I don't take any regular medication. No allergies either.",zh:"没有，我不长期服药，也没有过敏史。"},
+  ]},
+  {emoji:"🛒",title:"购物砍价",sub:"Shopping",lines:[
+    {a:true,en:"Is this price negotiable?",zh:"这个价格可以商量吗？"},
+    {a:false,en:"I was hoping it might be a bit flexible. I'm buying two.",zh:"希望能优惠一点，我要买两个。"},
+    {a:true,en:"If you take two, I can give you 15% off. Best offer.",zh:"买两个的话可以打八五折，最优惠了。"},
+    {a:false,en:"Could you do 20% off? And free shipping too?",zh:"能打八折吗？免运费更好。"},
+    {a:true,en:"Okay, let's do 20% off and I'll waive the shipping fee. Deal?",zh:"好吧，八折免运费，成交？"},
+    {a:false,en:"Deal! Thank you so much.",zh:"成交！非常感谢。"},
+  ]},
+];
+
+// ========== 工具 ==========
+function save(k,v){ localStorage.setItem(k,JSON.stringify(v)) }
+function load(k,d){ try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d} }
+
+function showPlayingTip(){
+  const tip=document.getElementById('playingTip');
+  tip.classList.add('show');
+  setTimeout(()=>tip.classList.remove('show'),2500);
+}
+
+function speak(text, rate=0.85) {
+  if(!('speechSynthesis' in window)){
+    document.getElementById('ttsBanner').classList.add('show');
+    document.getElementById('testTtsBtn').className='test-btn fail';
+    document.getElementById('testTtsBtn').textContent='❌ 此设备不支持语音';
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text);
+  u.lang='en-US'; u.rate=rate; u.pitch=1;
+  u.onstart=()=>showPlayingTip();
+  u.onend=()=>{document.getElementById('playingTip').classList.remove('show')};
+  window.speechSynthesis.speak(u);
+  document.getElementById('ttsBanner').classList.remove('show');
+  const btn=document.getElementById('testTtsBtn');
+  if(btn){btn.className='test-btn ok';btn.textContent='✅ 语音正常';}
+}
+
+function testTts(){
+  if(!('speechSynthesis' in window)){
+    document.getElementById('ttsBanner').classList.add('show');
+    document.getElementById('testTtsBtn').className='test-btn fail';
+    document.getElementById('testTtsBtn').textContent='❌ 此设备不支持语音';
+    return;
+  }
+  speak("Hello! TTS is working. Let's get started with English.",0.85);
+  document.getElementById('testTtsBtn').className='test-btn ok';
+  document.getElementById('testTtsBtn').textContent='✅ 语音正常，请点跟读试一下';
+}
+
+// file:// 协议下 TTS 大概率不可用，主动提示
+if(location.protocol==='file:'){
+  document.getElementById('ttsBanner').classList.add('show');
+  document.getElementById('testTtsBtn').className='test-btn fail';
+  document.getElementById('testTtsBtn').textContent='⚠️ 本地文件模式，语音可能不生效，点测试确认';
+}
+
+// ========== 导航 ==========
+function switchPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-item,.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll(`[data-page="${page}"]`).forEach(t=>t.classList.add('active'));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.nav-item,.tab-item').forEach(el=>{
+  el.addEventListener('click',()=>switchPage(el.dataset.page));
+});
+
+// ========== 跟读 ==========
+let speakDone=new Set(load('speakDone',[]));
+let speakingIdx=-1;
+
+function renderSpeaking(){
+  const list=document.getElementById('speak-list');
+  list.innerHTML='';
+  SPEAKING.forEach((item,i)=>{
+    const done=speakDone.has(i);
+    const div=document.createElement('div');
+    div.className='speak-item'+(done?' done':'');
+    div.dataset.idx=i;
+    div.innerHTML=`
+      <div style="flex:1">
+        <div class="speak-text">${done?'✔ ':''}${item.en}</div>
+        <div class="speak-zh">${item.zh}</div>
+      </div>
+      <button class="btn-speak" data-say="${i}">🔊</button>
+      <button class="btn-speak check-btn${done?' on':''}" data-done="${i}">${done?'✔':'✓'}</button>`;
+    list.appendChild(div);
+  });
+  document.getElementById('speak-progress').style.width=Math.round(speakDone.size/SPEAKING.length*100)+'%';
+
+  // 发音
+  list.querySelectorAll('[data-say]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const i=+b.dataset.say;
+      // 先取消之前的
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      const item=list.querySelector(`.speak-item[data-idx="${i}"]`);
+      if(item) item.classList.add('playing');
+      b.classList.add('playing');
+      speak(SPEAKING[i].en, 0.85);
+      setTimeout(()=>{
+        if(item) item.classList.remove('playing');
+        b.classList.remove('playing');
+      },3000);
+    });
+  });
+
+  // 标记完成
+  list.querySelectorAll('[data-done]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      const i=+b.dataset.done;
+      if(speakDone.has(i)){speakDone.delete(i);b.classList.remove('on');b.textContent='✓';}
+      else{speakDone.add(i);b.classList.add('on');b.textContent='✔';}
+      save('speakDone',[...speakDone]);
+      renderSpeaking();
+    });
+  });
+}
+renderSpeaking();
+
+// ========== 词汇 ==========
+let vocabQueue=[...Array(VOCAB.length).keys()].sort(()=>Math.random()-.5);
+let known=new Set(load('vocabKnown',[]));
+let fcIdx=0, fcCurIdx=0;
+
+function nextVocab(){
+  fcCurIdx=vocabQueue[fcIdx%vocabQueue.length];
+  fcIdx++;
+  const item=VOCAB[fcCurIdx];
+  const card=document.getElementById('flashcard');
+  card.classList.remove('flipped');
+  setTimeout(()=>{
+    document.getElementById('fc-word').textContent=item.w;
+    document.getElementById('fc-ex').textContent='e.g. '+item.ex;
+    document.getElementById('fc-meaning').textContent=item.m;
+    document.getElementById('fc-ex2').textContent=item.ex;
+    document.getElementById('vocab-count').textContent=`第 ${fcIdx} 张 · 已掌握 ${known.size}/${VOCAB.length}`;
+    document.getElementById('vocab-known').textContent=known.size;
+  },280);
+}
+
+function markVocab(gotIt){
+  if(gotIt&&!known.has(fcCurIdx)) known.add(fcCurIdx);
+  save('vocabKnown',[...known]);
+  document.getElementById('vocab-known').textContent=known.size;
+  nextVocab();
+}
+
+document.getElementById('flashcard').addEventListener('click',function(e){
+  if(e.target.closest('.fc-btn'))return;
+  this.classList.toggle('flipped');
+});
+document.getElementById('btnNotKnow').addEventListener('click',e=>{e.stopPropagation();markVocab(false)});
+document.getElementById('btnKnow').addEventListener('click',e=>{e.stopPropagation();markVocab(true)});
+document.getElementById('btnNextVocab').addEventListener('click',nextVocab);
+document.getElementById('fcSpeakBtn').addEventListener('click',e=>{e.stopPropagation();speak(VOCAB[fcCurIdx].w,0.75)});
+nextVocab();
+
+// ========== 场景对话 ==========
+let activeScene=-1;
+
+function renderScenes(){
+  const list=document.getElementById('scene-list');
+  list.innerHTML='';
+  SCENES.forEach((s,i)=>{
+    const div=document.createElement('div');
+    div.className='scene-card'+(i===activeScene?' active':'');
+    div.dataset.idx=i;
+    div.innerHTML=`
+      <div class="scene-header">
+        <div class="scene-emoji">${s.emoji}</div>
+        <div style="flex:1">
+          <div class="scene-title">${s.title}</div>
+          <div class="scene-sub">${s.sub} · ${s.lines.length} 句</div>
+        </div>
+        <div class="dlg-toggle" data-toggle="${i}">${i===activeScene?'▲ 收起':'▼ 展开'}</div>
+      </div>
+      <div class="dialogue${i===activeScene?' show':''}" id="scene-${i}">
+        ${s.lines.map((l,li)=>`
+        <div class="dlg-line ${l.a?'dlg-a':'dlg-b'}">
+          <div class="dlg-avatar">${l.a?'👨‍💼':'👤'}</div>
+          <div style="flex:1">
+            <div class="dlg-name">${l.a?'A（店员/医生）':'B（你）'}</div>
+            <div class="dlg-text">${l.en}</div>
+            <div class="dlg-zh">${l.zh}</div>
+          </div>
+          <button class="dlg-speak" data-s="${i}" data-l="${li}">🔊</button>
+        </div>`).join('')}
+      </div>`;
+    list.appendChild(div);
+  });
+
+  // 展开/收起：场景头部 or 箭头
+  list.querySelectorAll('.scene-header,.dlg-toggle').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const card=el.closest('.scene-card');
+      const i=+card.dataset.idx;
+      activeScene=activeScene===i?-1:i;
+      renderScenes();
+    });
+  });
+
+  // 发音按钮
+  list.querySelectorAll('.dlg-speak').forEach(b=>{
+    b.addEventListener('click',e=>{
+      e.stopPropagation();
+      const s=+b.dataset.s, l=+b.dataset.l;
+      if(window.speechSynthesis) window.speechSynthesis.cancel();
+      b.classList.add('playing'); b.textContent='🔴';
+      speak(SCENES[s].lines[l].en, 0.85);
+      setTimeout(()=>{b.classList.remove('playing');b.textContent='🔊'},3000);
+    });
+  });
+}
+renderScenes();
+
+// ========== 每日挑战 ==========
+let challengeIdx=0,challengeScore=0,challengeQs=[];
+
+function startChallenge(){
+  challengeQs=makeQuiz(5);
+  challengeIdx=0;challengeScore=0;
+  document.getElementById('quiz-area').style.display='block';
+  document.getElementById('quiz-result').style.display='none';
+  showQ();
+}
+
+function makeQuiz(n){
+  const qs=[];
+  for(let i=0;i<n;i++){
+    const type=['listen','translate','spell'][i%3];
+    const v=VOCAB[Math.floor(Math.random()*VOCAB.length)];
+    if(type==='listen'){
+      const opts=[...Array(VOCAB.length).keys()].sort(()=>Math.random()-.5).slice(0,4).map(j=>VOCAB[j].w);
+      if(!opts.includes(v.w))opts[3]=v.w;
+      qs.push({type,v,opts,answer:v.w,play:v.w});
+    }else if(type==='translate'){
+      const correct=v.m;
+      const wrong=VOCAB.filter(x=>x!==v).map(x=>x.m).sort(()=>Math.random()-.5).slice(0,3);
+      qs.push({type,v,opts:[correct,...wrong].sort(()=>Math.random()-.5),answer:correct});
+    }else{
+      const upper=v.w.charAt(0).toUpperCase()+v.w.slice(1);
+      const scram=[...v.w].sort(()=>Math.random()-.5).join('');
+      const opts=[v.w,upper,scram,v.w.slice(0,3)+v.w[3].toUpperCase()+v.w.slice(4)];
+      qs.push({type,v,opts,answer:v.w});
+    }
+  }
+  return qs;
+}
+
+function showQ(){
+  const q=challengeQs[challengeIdx];
+  const qEl=document.getElementById('quiz-q');
+  if(q.type==='listen'){
+    qEl.innerHTML=`🔊 听发音，选出正确单词<br>
+      <button class="btn-speak" style="width:48px;height:48px;margin:10px 0;font-size:22px;display:block;margin-left:auto;margin-right:auto" id="quizPlayBtn">▶</button>
+      <span style="font-size:11px;color:var(--text2)">点按钮可重听</span>`;
+    document.getElementById('quizPlayBtn').addEventListener('click',()=>speak(q.play,0.7));
+    // 自动播一次
+    setTimeout(()=>speak(q.play,0.7),500);
+  }else if(q.type==='translate'){
+    qEl.textContent=`「${q.v.w}」的中文意思是？`;
+  }else{
+    qEl.innerHTML=`选出正确的单词拼写<br><span style="font-size:13px;color:var(--text2);font-weight:400">提示：${q.v.m} · ${q.v.ex}</span>`;
+  }
+  const opts=document.getElementById('quiz-opts');
+  opts.innerHTML='';
+  q.opts.forEach(o=>{
+    const btn=document.createElement('button');
+    btn.className='quiz-opt';
+    btn.textContent=o;
+    btn.addEventListener('click',()=>{
+      const correct=o===q.answer;
+      btn.classList.add(correct?'correct':'wrong');
+      if(correct)challengeScore++;
+      opts.querySelectorAll('.quiz-opt').forEach(b=>b.style.pointerEvents='none');
+      setTimeout(()=>{
+        challengeIdx++;
+        if(challengeIdx<challengeQs.length)showQ();else showResult();
+      },900);
+    });
+    opts.appendChild(btn);
+  });
+}
+
+function showResult(){
+  document.getElementById('quiz-area').style.display='none';
+  const res=document.getElementById('quiz-result');
+  res.style.display='block';
+  document.getElementById('quiz-score').textContent=`${challengeScore}/${challengeQs.length}`;
+  const msgs=['再接再厉 💪','有进步了 👍','优秀！保持 🌟','太棒了 🏆','完美！🎉'];
+  document.getElementById('quiz-msg').textContent=msgs[challengeScore];
+  const best=Math.max(challengeScore,load('challengeBest',0));
+  save('challengeBest',best);
+  document.getElementById('challenge-best').textContent=best;
+}
+
+document.getElementById('btnStartChallenge').addEventListener('click',startChallenge);
+document.getElementById('btnRetryChallenge').addEventListener('click',startChallenge);
+
+// ========== 连续天数 ==========
+(function(){
+  const today=new Date().toDateString();
+  const last=load('lastActive',null);
+  if(last!==today){
+    if(last){
+      const diff=Math.round((new Date(today)-new Date(last))/86400000);
+      save('streak',diff===1?load('streak',0)+1:1);
+    }else save('streak',1);
+    save('lastActive',today);
+  }
+  document.getElementById('streak').textContent=load('streak',0);
+})();
+
+// PWA
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
